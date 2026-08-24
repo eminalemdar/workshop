@@ -1,7 +1,8 @@
 # The managed Argo CD identifies clusters by EKS ARN — kubernetes.default.svc is
 # rejected — and does not register the local cluster for you.
 #
-# CHANGE ME: the ARN of your own cluster, here and in the two Applications.
+# CHANGE ME: the ARN of your own cluster. The Applications reach it by name, so
+# this is the only place it appears.
 # It is arn:aws:eks:<region>:<account-id>:cluster/<cluster-name>.
 #
 # The namespace for every file in this folder comes from the argocd stack, so

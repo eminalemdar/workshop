@@ -162,10 +162,10 @@ grep -rn "CHANGE ME" .
 | `cluster_admin_principal_arns` | `aws/eks/variables.tf` | IAM principals that get cluster admin |
 | `argocd_admin_user_names` | `aws/eks/variables.tf` | Identity Center users that get Argo CD ADMIN |
 
-The cluster ARN in `kubernetes/*.yaml` is a fifth, and the only one that isn't a
-variable - the manifests are applied by `kubectl`, which doesn't interpolate. It's
-`arn:aws:eks:<region>:<account-id>:cluster/<cluster-name>`, so you can fill it in
-before the cluster exists.
+The cluster ARN in `kubernetes/cluster-local.yaml` is a fifth, and the only one
+that isn't a variable - the manifests are applied by `kubectl`, which doesn't
+interpolate. It's `arn:aws:eks:<region>:<account-id>:cluster/<cluster-name>`, so you
+can fill it in before the cluster exists.
 
 Edit the defaults directly, or leave them alone and override per stack in Spacelift
 with `TF_VAR_<name>`. If you go the environment variable route, the list and object
@@ -271,8 +271,9 @@ immediately if you miss them:
 
 - Clusters are identified by **EKS cluster ARN**, not API server URL.
   `https://kubernetes.default.svc` is rejected outright, and the local cluster is
-  not registered for you. The ARN appears in three files here, so it's the one
-  account-specific value in `kubernetes/` - see [Configuration](#configuration).
+  not registered for you. `cluster-local.yaml` registers it by ARN and the
+  Applications reach it by name, so the ARN sits in one place - see
+  [Configuration](#configuration).
 - The capability role gets an access entry but **no Kubernetes RBAC**, so Argo CD
   authenticates and then fails every deploy. `aws/eks/main.tf` associates
   `AmazonEKSClusterAdminPolicy` with it, same as it does for kro.

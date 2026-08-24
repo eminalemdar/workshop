@@ -14,7 +14,8 @@ spec:
       # instances/ is kro-instances' to sync.
       recurse: false
   destination:
-    server: "arn:aws:eks:eu-west-1:247747705325:cluster/workshop"
+    # Resolved through cluster-local.yaml, which holds the ARN.
+    name: in-cluster
     namespace: kro
   syncPolicy:
     automated:
