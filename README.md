@@ -116,12 +116,11 @@ cluster](#getting-access-to-the-cluster).
 ### 7. Confirm the capabilities came up
 
 ```bash
-kubectl get capability
-kubectl api-resources | grep -E 's3.services.k8s.aws|kro.run'
+kubectl api-resources | grep -E 'services.k8s.aws|kro.run|argoproj.io'
 ```
 
-Three capabilities, and CRDs from both ACK and kro. If the CRDs aren't there yet,
-give the capability another minute and look again.
+CRDs from all three capabilities. If they aren't there yet, give it another minute
+and look again.
 
 Then the Argo CD side:
 
@@ -131,6 +130,35 @@ kubectl get applications -n argocd
 
 `kro-rgd` and `kro-instances`, both `Synced` and `Healthy`. `kro-instances` can sit
 `OutOfSync` for a round or two on a first sync, then retries into place.
+
+### 8. Open the Argo CD UI
+
+```bash
+aws eks describe-capability --cluster-name workshop --capability-name argocd \
+  --region eu-west-1 --query capability.configuration.argoCd.serverUrl --output text
+```
+
+That needs a recent AWS CLI. Failing that, the `kubernetes` stack's
+`argocd_server_url` output and the cluster's Capabilities tab in the EKS console
+both have it.
+
+Sign in with IAM Identity Center - there's no local admin account and no password
+to find. If you land with no permissions your user isn't in
+`argocd_admin_user_names`; see [Argo CD](#argo-cd). Both Applications should be
+listed, and Settings → Clusters should show `in-cluster`.
+
+### 9. Open the game
+
+The 2048 app sits behind an ALB that kro created from the `Game2048Application`
+instance:
+
+```bash
+kubectl get ingress -n game-2048 game2048-ingress \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+HTTP on port 80. `/` is the frontend; `/game/`, `/leaderboard/` and `/health` go to
+the backend. Empty output means the ALB is still coming up.
 
 ### Tearing it down
 
@@ -222,12 +250,11 @@ zero and will bring up a node as soon as something needs to be scheduled.
 
 ## Argo CD
 
-You can reach the UI from the Capabilities tab of the cluster in the EKS console,
-or grab the URL directly:
-
-```bash
-kubectl get capability argocd -o jsonpath='{.status.serverUrl}'
-```
+The URL comes from the `kubernetes` stack's `argocd_server_url` output, or the
+cluster's Capabilities tab in the EKS console. There's no in-cluster resource to
+query for it - the capability runs in the AWS control plane, not as pods in the
+`argocd` namespace. `aws eks describe-capability` also returns it, on a recent
+enough AWS CLI.
 
 Sign in with IAM Identity Center. There's no local admin account and no
 `argocd-rbac-cm` to edit — who gets in is decided entirely by the capability's
