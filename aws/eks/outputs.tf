@@ -1,3 +1,8 @@
+output "region" {
+  description = "AWS region the cluster was created in. Consumed by the argocd stack, which needs it to build a kubeconfig."
+  value       = var.region
+}
+
 output "cluster_name" {
   description = "Name of the EKS cluster."
   value       = module.eks.cluster_name

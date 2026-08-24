@@ -1,0 +1,18 @@
+# The namespace for every file in this folder comes from the argocd stack, so
+# applying one by hand needs -n argocd.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-local
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+type: Opaque
+stringData:
+  name: in-cluster
+  server: https://kubernetes.default.svc
+  config: |
+    {
+      "tlsClientConfig": {
+        "insecure": false
+      }
+    }

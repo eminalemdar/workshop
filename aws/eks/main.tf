@@ -1,15 +1,11 @@
-# The Argo CD capability authenticates users through IAM Identity Center, so it
-# needs the ARN of the account's IDC instance. The identity store behind that
-# instance is also where the Argo CD admin group lives, so this is read
-# unconditionally even when the instance ARN is supplied explicitly.
+# Argo CD authenticates through IAM Identity Center; the admin group lives in the
+# same identity store, so this is read even when the instance ARN is passed in.
 data "aws_ssoadmin_instances" "this" {}
 
 locals {
   argocd_idc_instance_arn = var.argocd_idc_instance_arn != "" ? var.argocd_idc_instance_arn : one(data.aws_ssoadmin_instances.this.arns)
   identity_store_id       = var.argocd_idc_identity_store_id != "" ? var.argocd_idc_identity_store_id : one(data.aws_ssoadmin_instances.this.identity_store_ids)
 
-  # One access entry per admin principal, keyed by the last segment of the ARN
-  # (e.g. "user/emin" -> "emin") so the map keys stay stable and readable.
   cluster_admin_access_entries = {
     for arn in var.cluster_admin_principal_arns : reverse(split("/", arn))[0] => {
       principal_arn = arn
@@ -22,10 +18,8 @@ locals {
     }
   }
 
-  # The group created below, plus any pre-existing IDC groups passed in. This is
-  # never empty, so the capability always ships with an ADMIN mapping — without
-  # one, Identity Center authenticates the user but Argo CD grants no role and
-  # the UI is unreachable.
+  # Never empty, so the capability always ships with an ADMIN mapping. Without
+  # one, Argo CD authenticates the user but grants no role.
   argocd_admin_group_ids = concat(
     [aws_identitystore_group.argocd_admins.group_id],
     var.argocd_admin_sso_group_ids,
@@ -41,11 +35,8 @@ locals {
 }
 
 ################################################################################
-# Argo CD administrators
-#
-# Argo CD RBAC is mapped to IDC groups rather than individual users, as AWS
-# recommends: granting a new person access is then a group membership change
-# rather than an update to the capability itself.
+# Argo CD administrators — RBAC maps to IDC groups, so granting access is a
+# membership change rather than an update to the capability.
 ################################################################################
 
 resource "aws_identitystore_group" "argocd_admins" {
@@ -54,8 +45,6 @@ resource "aws_identitystore_group" "argocd_admins" {
   description       = "Granted the Argo CD ADMIN role on the ${var.cluster_name} cluster."
 }
 
-# Members are referenced by IDC user name so the config stays readable; the
-# opaque user IDs the membership resource needs are resolved here.
 data "aws_identitystore_user" "argocd_admins" {
   for_each = toset(var.argocd_admin_user_names)
 
@@ -90,9 +79,8 @@ module "eks" {
   # Auth is access-entry based (API mode); aws-auth ConfigMap is not used.
   access_entries = local.cluster_admin_access_entries
 
-  # EKS Auto Mode. Enabling compute_config also turns on the managed block
-  # storage (EBS CSI) and load balancing (ALB/NLB) capabilities of Auto Mode,
-  # so no self-managed node groups or core add-ons are needed.
+  # Auto Mode. Also brings managed EBS CSI and ALB/NLB, so there are no node
+  # groups or core add-ons to declare.
   compute_config = {
     enabled    = true
     node_pools = var.node_pools
@@ -123,8 +111,7 @@ module "ack" {
 }
 
 # Kube Resource Orchestrator: compose resources into higher-level custom APIs.
-# kro needs no IAM policies of its own — it never calls AWS APIs, it only
-# creates Kubernetes objects.
+# No IAM policies of its own — it only creates Kubernetes objects.
 module "kro" {
   source  = "terraform-aws-modules/eks/aws//modules/capability"
   version = "~> 21.24"
@@ -135,17 +122,12 @@ module "kro" {
   tags = var.tags
 }
 
-# Creating the capability gets kro an access entry carrying AmazonEKSKROPolicy,
-# which only covers ResourceGraphDefinitions and their instances — deliberately
-# not the resources an RGD actually produces. Without a broader policy an RGD
-# registers its custom API but instantiating one creates nothing, so kro needs
-# rights over every kind its RGDs emit (Deployments, Services, and the ACK
-# *.services.k8s.aws CRDs when composing AWS resources).
+# The capability's own AmazonEKSKROPolicy covers RGDs and instances but not the
+# resources an RGD emits, so without this an instance creates nothing.
 #
-# Cluster admin is what AWS prescribes for getting started and keeps any RGD the
-# workshop writes working. Scope this down for anything real: combined with the
-# ACK capability's AdministratorAccess, whoever can create a kro instance can
-# create arbitrary AWS resources.
+# Cluster admin is what AWS prescribes to get started. Scope it down for anything
+# real: with the ACK capability's AdministratorAccess, anyone who can create a kro
+# instance can create arbitrary AWS resources.
 resource "aws_eks_access_policy_association" "kro" {
   cluster_name  = module.eks.cluster_name
   principal_arn = module.kro.iam_role_arn

@@ -43,10 +43,9 @@ module "kubernetes" {
     id      = var.aws_integration_id
   }
 
-  # The EKS cluster is built on top of the VPC, so the kubernetes stack runs
-  # after networking and reads the subnet/VPC IDs straight out of its outputs.
-  # control_plane_subnet_ids is left unwired on purpose — the EKS module falls
-  # back to subnet_ids for the control plane ENIs when it is empty.
+  # Runs after networking, reading the VPC and subnet IDs from its outputs.
+  # control_plane_subnet_ids is left unwired — the EKS module falls back to
+  # subnet_ids when it is empty.
   dependencies = {
     networking = {
       parent_stack_id = module.networking.id
@@ -65,4 +64,71 @@ module "kubernetes" {
   }
 
   labels = ["aws", "eks", "kubernetes", "opentofu"]
+}
+
+# Argo CD bootstrap manifests. Plain YAML rather than OpenTofu, so Spacelift
+# applies them with kubectl.
+module "argocd" {
+  source = "github.com/spacelift-solutions/terraform-spacelift-stack?ref=v3.2.1"
+
+  name        = "argocd"
+  description = "Argo CD cluster/repository secrets and app-of-apps manifests for the workshop"
+
+  space_id          = spacelift_space.workshop.id
+  repository_name   = var.repository_name
+  repository_branch = var.repository_branch
+  project_root      = "kubernetes"
+  vcs               = var.vcs
+
+  workflow_tool = "KUBERNETES"
+  auto_deploy   = true
+
+  # A Terraform concept; kubectl's state is the cluster.
+  manage_state = false
+
+  kubernetes_config = {
+    kubectl_version = var.kubectl_version
+
+    # The one place the namespace is written down — the manifests carry none.
+    namespace = var.argocd_namespace
+  }
+
+  aws_integration = {
+    enabled = true
+    id      = var.aws_integration_id
+  }
+
+  # Runs after the kubernetes stack, and takes the cluster to talk to from its
+  # outputs. Applying that stack triggers this one.
+  dependencies = {
+    kubernetes = {
+      parent_stack_id = module.kubernetes.id
+
+      references = {
+        cluster_name = {
+          input_name  = "CLUSTER_NAME"
+          output_name = "cluster_name"
+        }
+        region = {
+          input_name  = "REGION_NAME"
+          output_name = "region"
+        }
+      }
+    }
+  }
+
+  environment_variables = {
+    # Somewhere writable, rather than assuming HOME is.
+    KUBECONFIG = { value = "/mnt/workspace/kubeconfig" }
+  }
+
+  # Turns the AWS integration's credentials into a kubeconfig. That role created
+  # the cluster, so it's already a cluster admin.
+  hooks = {
+    before = {
+      init = ["aws eks update-kubeconfig --region $REGION_NAME --name $CLUSTER_NAME"]
+    }
+  }
+
+  labels = ["aws", "argocd", "kubectl", "manifests"]
 }

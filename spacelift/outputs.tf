@@ -12,3 +12,8 @@ output "kubernetes_stack_id" {
   value       = module.kubernetes.id
   description = "The ID of the kubernetes stack."
 }
+
+output "argocd_stack_id" {
+  value       = module.argocd.id
+  description = "The ID of the argocd stack."
+}

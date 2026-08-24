@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kro-rgd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/eminalemdar/2048
+    targetRevision: HEAD
+    path: kubernetes/kro
+    directory:
+      # instances/ is kro-instances' to sync.
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kro
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

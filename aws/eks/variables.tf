@@ -38,11 +38,8 @@ variable "cluster_admin_principal_arns" {
 }
 
 ################################################################################
-# Networking references
-#
-# Populated from the outputs of the networking stack. Left empty on purpose so
-# they can be injected as environment variables (TF_VAR_<name>) — either via a
-# Spacelift context shared with the networking stack, or via stack outputs.
+# Networking references — empty by default, injected as TF_VAR_<name> from the
+# networking stack's outputs.
 ################################################################################
 
 variable "vpc_id" {

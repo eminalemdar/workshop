@@ -44,3 +44,15 @@ variable "aws_integration_id" {
   # under Cloud integrations in the Spacelift UI.
   default = "01HCY7118NC0NWCZ0QTJKK8WB7"
 }
+
+variable "kubectl_version" {
+  type        = string
+  description = "The kubectl version the argocd stack uses. 'latest' takes the newest version Spacelift offers."
+  default     = "latest"
+}
+
+variable "argocd_namespace" {
+  type        = string
+  description = "Namespace the argocd stack applies its manifests into. Must match argocd_namespace in aws/eks/variables.tf."
+  default     = "argocd"
+}
