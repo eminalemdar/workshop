@@ -39,7 +39,7 @@ waiting - about five minutes of typing and twenty of watching runs.
 
 ### 1. Fork it and point it at your environment
 
-Four variables still point at the environment this was built in. Find them with
+Five values still point at the environment this was built in. Find them with
 `grep -rn "CHANGE ME" .` and set them as described in
 [Configuration](#configuration).
 
@@ -147,8 +147,8 @@ created.
 
 ## Configuration
 
-If you're forking this, four variables still point at the environment it was built
-in and won't work anywhere else. They're marked in the code, so you can find them
+If you're forking this, five values still point at the environment it was built in
+and won't work anywhere else. They're marked in the code, so you can find them
 with:
 
 ```bash
@@ -161,6 +161,11 @@ grep -rn "CHANGE ME" .
 | `vcs` | `spacelift/variables.tf` | Your VCS namespace and integration |
 | `cluster_admin_principal_arns` | `aws/eks/variables.tf` | IAM principals that get cluster admin |
 | `argocd_admin_user_names` | `aws/eks/variables.tf` | Identity Center users that get Argo CD ADMIN |
+
+The cluster ARN in `kubernetes/*.yaml` is a fifth, and the only one that isn't a
+variable - the manifests are applied by `kubectl`, which doesn't interpolate. It's
+`arn:aws:eks:<region>:<account-id>:cluster/<cluster-name>`, so you can fill it in
+before the cluster exists.
 
 Edit the defaults directly, or leave them alone and override per stack in Spacelift
 with `TF_VAR_<name>`. If you go the environment variable route, the list and object
@@ -266,9 +271,8 @@ immediately if you miss them:
 
 - Clusters are identified by **EKS cluster ARN**, not API server URL.
   `https://kubernetes.default.svc` is rejected outright, and the local cluster is
-  not registered for you. The manifests carry a `__CLUSTER_ARN__` placeholder that
-  a `before_init` hook fills in from the cluster stack's `cluster_arn` output, so
-  there's nothing account-specific to edit.
+  not registered for you. The ARN appears in three files here, so it's the one
+  account-specific value in `kubernetes/` - see [Configuration](#configuration).
 - The capability role gets an access entry but **no Kubernetes RBAC**, so Argo CD
   authenticates and then fails every deploy. `aws/eks/main.tf` associates
   `AmazonEKSClusterAdminPolicy` with it, same as it does for kro.

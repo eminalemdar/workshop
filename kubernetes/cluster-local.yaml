@@ -1,7 +1,8 @@
-# The managed Argo CD identifies clusters by EKS ARN, not API server URL —
-# kubernetes.default.svc is rejected. __CLUSTER_ARN__ is filled in from the
-# kubernetes stack's output by a before_init hook, so nothing here is
-# account-specific.
+# The managed Argo CD identifies clusters by EKS ARN — kubernetes.default.svc is
+# rejected — and does not register the local cluster for you.
+#
+# CHANGE ME: the ARN of your own cluster, here and in the two Applications.
+# It is arn:aws:eks:<region>:<account-id>:cluster/<cluster-name>.
 #
 # The namespace for every file in this folder comes from the argocd stack, so
 # applying one by hand needs -n argocd.
@@ -14,5 +15,5 @@ metadata:
 type: Opaque
 stringData:
   name: in-cluster
-  server: "__CLUSTER_ARN__"
+  server: "arn:aws:eks:eu-west-1:247747705325:cluster/workshop"
   project: default

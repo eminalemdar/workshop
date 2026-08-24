@@ -113,10 +113,6 @@ module "argocd" {
           input_name  = "REGION_NAME"
           output_name = "region"
         }
-        cluster_arn = {
-          input_name  = "CLUSTER_ARN"
-          output_name = "cluster_arn"
-        }
       }
     }
   }
@@ -126,15 +122,11 @@ module "argocd" {
     KUBECONFIG = { value = "/mnt/workspace/kubeconfig" }
   }
 
-  # First line turns the AWS integration's credentials into a kubeconfig; that
-  # role created the cluster, so it's already a cluster admin. Second fills in
-  # the cluster ARN, which the managed Argo CD uses to identify clusters.
+  # Turns the AWS integration's credentials into a kubeconfig. That role created
+  # the cluster, so it's already a cluster admin.
   hooks = {
     before = {
-      init = [
-        "aws eks update-kubeconfig --region $REGION_NAME --name $CLUSTER_NAME",
-        "sed -i \"s|__CLUSTER_ARN__|$CLUSTER_ARN|g\" ./*.yaml",
-      ]
+      init = ["aws eks update-kubeconfig --region $REGION_NAME --name $CLUSTER_NAME"]
     }
   }
 
