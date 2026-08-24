@@ -7,5 +7,5 @@ metadata:
 type: Opaque
 stringData:
   type: git
-  name: 2048
+  name: "2048"
   url: https://github.com/eminalemdar/2048

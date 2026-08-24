@@ -138,6 +138,19 @@ resource "aws_eks_access_policy_association" "kro" {
   }
 }
 
+# Argo CD's access entry is created with the capability but grants no Kubernetes
+# RBAC, so without this it authenticates and then fails every deploy. Same
+# trade-off as kro above: cluster admin to get started, narrow it for real use.
+resource "aws_eks_access_policy_association" "argocd" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = module.argocd.iam_role_arn
+  policy_arn    = var.argocd_access_policy_arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
 # Fully managed Argo CD for GitOps delivery into the cluster.
 module "argocd" {
   source  = "terraform-aws-modules/eks/aws//modules/capability"

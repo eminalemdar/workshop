@@ -246,7 +246,7 @@ itself out, so leave that alone.
 
 | File | What it does |
 | --- | --- |
-| `cluster-local.yaml` | Registers the cluster Argo CD runs in as the `in-cluster` target |
+| `cluster-local.yaml` | Registers the cluster, by ARN, as the `in-cluster` target |
 | `repository-2048.yaml` | Registers `https://github.com/eminalemdar/2048` as a source |
 | `app-of-apps-kro-rgd.yaml` | Syncs `kubernetes/kro` from that repo - the ResourceGraphDefinitions |
 | `app-of-apps-kro-instances.yaml` | Syncs `kubernetes/kro/instances` - the resources built from them |
@@ -260,6 +260,18 @@ there. Both have `prune` and `selfHeal` on, so from then on the cluster follows 
 None of the files carry a `metadata.namespace` - the stack supplies it with
 `kubectl -n`, so applying one by hand needs `-n argocd`. Adding more to Argo CD
 means dropping another manifest into `kubernetes/` and pushing.
+
+Two things about this capability differ from self-managed Argo CD, and both bite
+immediately if you miss them:
+
+- Clusters are identified by **EKS cluster ARN**, not API server URL.
+  `https://kubernetes.default.svc` is rejected outright, and the local cluster is
+  not registered for you. The manifests carry a `__CLUSTER_ARN__` placeholder that
+  a `before_init` hook fills in from the cluster stack's `cluster_arn` output, so
+  there's nothing account-specific to edit.
+- The capability role gets an access entry but **no Kubernetes RBAC**, so Argo CD
+  authenticates and then fails every deploy. `aws/eks/main.tf` associates
+  `AmazonEKSClusterAdminPolicy` with it, same as it does for kro.
 
 ## ACK
 

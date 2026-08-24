@@ -78,6 +78,12 @@ variable "kro_access_policy_arn" {
   default     = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 }
 
+variable "argocd_access_policy_arn" {
+  type        = string
+  description = "EKS access policy associated with the Argo CD capability role so it can deploy into this cluster. AmazonEKSClusterAdminPolicy is what AWS recommends for getting started; scope it down for anything beyond a workshop."
+  default     = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+}
+
 variable "argocd_namespace" {
   type        = string
   description = "Namespace the managed Argo CD capability is installed into."

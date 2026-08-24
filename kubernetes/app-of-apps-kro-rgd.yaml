@@ -14,7 +14,7 @@ spec:
       # instances/ is kro-instances' to sync.
       recurse: false
   destination:
-    server: https://kubernetes.default.svc
+    server: "__CLUSTER_ARN__"
     namespace: kro
   syncPolicy:
     automated:
