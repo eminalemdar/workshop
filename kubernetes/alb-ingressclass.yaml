@@ -1,0 +1,29 @@
+# IngressClass for EKS Auto Mode's built-in load balancing.
+#
+# This project previously relied on the self-managed AWS Load Balancer
+# Controller (installed by the eks-blueprints-addons module) to provide the
+# "alb" IngressClass. Auto Mode provides load balancing as a core component
+# instead, under a different controller name, so the IngressClass has to be
+# declared here.
+#
+# Apply this once per cluster, before any Ingress that references it.
+---
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: alb
+spec:
+  scheme: internet-facing
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: eks.amazonaws.com/alb
+  parameters:
+    apiGroup: eks.amazonaws.com
+    kind: IngressClassParams
+    name: alb
